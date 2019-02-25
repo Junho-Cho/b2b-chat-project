@@ -105,12 +105,12 @@ footer{
 .tabs .indicator{
     height:3px;
 }
-#dvLogin, #dvJoin{
+#dvLogin, #dvJoin, #dvAdminJoin{
     padding-left:5%;
     padding-right:5%;
     position : relative;
 }
-#dvJoin{
+#dvJoin, #dvAdminJoin{
     display:none;
 }
 #dvLogin em{
@@ -167,6 +167,9 @@ footer{
 }
 #liEmailBtn{
     background:#00b0ff;
+}
+#liAdminEmailJoin, #liAdminEmailJoinSubmit{
+    background:#ff5252;
 }
 #liEmailJoin, #liEmailJoinSubmit{
     background:#ffb300;
