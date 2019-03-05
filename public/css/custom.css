@@ -171,20 +171,20 @@ footer{
 #liAdminEmailJoin, #liAdminEmailJoinSubmit{
     background:#ff5252;
 }
-#liEmailJoin, #liEmailJoinSubmit{
+#liEmailJoinSubmit{
     background:#ffb300;
 }
 #dvSocial{
     position:relative;
 }
-#liLogOut{
+#liLogOut, #liEmailJoin, #liPartChange, #liDeleteUser{
     border-bottom: 1px solid #e3e3e3;
     cursor:pointer;
     user-select : none;
     height: 50px;
     line-height: 30px;
 }
-#liLogOut:hover{
+#liLogOut:hover, #liEmailJoin:hover, #liPartChange:hover, #liDeleteUser:hover{
     background: #f7f7f7;
 }
 .input-text{

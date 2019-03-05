@@ -35,7 +35,7 @@
         <div id="tab-3" class="col s12 tabContents">
             <ul class="collection">
                 <li id="liLogOut" class="collection-item">로그아웃</li>
-                <li id="liAddUser" class="collection-item" style="display:none;">신규입사자 등록</li>
+                <li id="liEmailJoin" class="collection-item" style="display:none;">신규입사자 등록</li>
                 <li id="liPartChange" class="collection-item" style="display:none;">부서이동</li>
                 <li id="liDeleteUser" class="collection-item" style="display:none;">퇴사자 제거</li>
             </ul>
@@ -74,32 +74,36 @@
               <ul class="btnGroup">
               	  <li id="liAdminEmailJoin" class="waves-effect waves-teal btn-flat">관리자 등록</li>
               </ul>
-              <ul class="btnGroup">
+              <!--<ul class="btnGroup">
                   <li id="liEmailJoin" class="waves-effect waves-teal btn-flat">회원가입</li>
-              </ul>
+              </ul>-->
           </div>
       </div>
       <div id="dvAdminJoin">
       	  <h5>관리자 등록</h5>
       	  <input type="text" id="joinAdminName" name="adminName" class="input-text" placeholder="이름">
+      	  <input type="email" id="joinAdminEmail" name="adminName" class="input-text" placeholder="이메일 아이디">
+      	  <input type="password" id="joinAdminPassword" name="adminPassword" class="input-text" maxlength="17" placeholder="비밀번호">
+      	  <input type="password" id="joinAdminRePassword" class="input-text" maxlength="17" placeholder="비밀번호 확인">
+      	  <input type="text" id="joinAdminPart" name="adminPart" class="input-text" placeholder="부서명">
+      	  <input type="text" id="joinAdminRank" name="adminRank" class="input-text" placeholder="직급명">
       	  <div class="row" style="width: 100%!important; margin-bottom:0px!important">
-      	  	<div class="col" style="width: 70%!important;"><input type="email" id="joinAdminEmail" name="adminName" class="input-text" placeholder="이메일 아이디"></div>
+      	  	<div class="col" style="width: 70%!important;"><input type="text" id="joinAdminCode" class="input-text" placeholder="관리자 코드"></div>
       	  	<div class="col"><a id="btnSendAdminCode" class="waves-effect waves-teal btn" style="height: 46px!important; line-height: 46px!important">관리자 코드 발송</a></div>
       	  </div>
       	  <span class="red-text"> * 관리자 코드는 관리팀 전용 이메일로만 발송됩니다.</span>
-      	  <input type="password" id="joinAdminPassword" name="adminPassword" class="input-text" maxlength="17" placeholder="비밀번호">
-      	  <input type="password" id="joinAdminRePassword" class="input-text" maxlength="17" placeholder="비밀번호 확인">
-      	  <input type="text" id="joinAdminCode" class="input-text" placeholder="관리자 코드">
       	  <ul class="btnGroup">
       	  	  <li id="liAdminEmailJoinSubmit" class="waves-effect waves-teal btn-flat">등록하기</li>
       	  </ul>
       </div>
       <div id="dvJoin">
-          <h5>사용자 등록</h5>
+          <h5>신규 입사자 등록</h5>
           <input type="text" id="joinUserName" name="userName" class="input-text" placeholder="이름">
           <input type="email" id="joinUserEmail" name="userName" class="input-text" placeholder="이메일 아이디">
           <input type="password" id="joinPassword" name="password" class="input-text" maxlength="17" placeholder="비밀번호">
           <input type="password" id="joinRePassword" class="input-text" maxlength="17" placeholder="비밀번호 확인">
+          <input type="text" id="joinUserPart" name="userPart" class="input-text" placeholder="부서">
+          <input type="text" id="joinUserRank" name="userRank" class="input-text" placeholder="직급">
           <ul class="btnGroup">
               <li id="liEmailJoinSubmit" class="waves-effect waves-teal btn-flat">등록하기</li>
           </ul>
@@ -173,6 +177,8 @@
           }
 
           /* 초기 변수 할당 공간 */
+          var randomCode = "";
+
           FirebaseChat.prototype.init = function() {
           	this.auth = firebase.auth();
           	this.liEmailJoin = document.getElementById('liEmailJoin');
@@ -186,6 +192,8 @@
           	this.dvAdminJoin = document.getElementById('dvAdminJoin');
           	this.dvAuth = document.getElementById('dvAuth');
           	this.liLogOut = document.getElementById('liLogOut');
+          	this.liDeleteUser = document.getElementById('liDeleteUser');
+          	this.liPartChange = document.getElementById('liPartChange');
           	this.ulUserList = document.getElementById('ulUserList');
           	this.tabMessageList = document.getElementById('tabMessageList');
           	this.aBackBtn = document.getElementById('aBackBtn');
@@ -245,6 +253,8 @@
           		console.log("Logout");
           		this.setLogOut();
           	}
+
+
           }
 
           /* 이메일 로그인 버튼 클릭 */
@@ -288,6 +298,7 @@
           	this.dvAuth.style.display = "none";
           	this.checkAndSaveUser(user);
           	this.loadUserList();
+          	this.checkAdminOrUser();
           	this.loadRoomList();
           	this.checkOnline();
           }
@@ -321,7 +332,7 @@
           }
 
           /* 사용자 데이터를 IndexedDB에 저장, 데이터 변경 */
-          FirebaseChat.prototype.saveUserAtIndexedDB = function(user, userName, isSave, pos) {
+          FirebaseChat.prototype.saveUserAtIndexedDB = function(user, userName, isSave, pos, userPart, userRank) {
           	if (indexedDB) {
           		var request = indexedDB.open(this.INDEXDB_DB_NAME, this.INDEXDB_VERSION),
           			objectname = this.INDEXDB_STORE;
@@ -332,7 +343,6 @@
           		request.onsuccess = function() {
           			var db = request.result;
           			var tx = db.transaction(objectname, "readwrite");
-          			// var tx = db.transaction(objectname, IDBTransaction.READ_WRITE);
           			var store = tx.objectStore(objectname);
 
           			store.get(user.uid).onsuccess = function(event) {
@@ -347,7 +357,9 @@
           						photoURL: user.photoURL ? user.photoURL : "",
           						displayName: userName ? userName: user.displayName,
           						isSave: false,
-          						position: pos
+          						position: pos,
+          						userPart: userPart,
+          						userRank: userRank
           					});
           				}
 
@@ -358,7 +370,9 @@
           						photoURL: user.photoURL ? user.photoURL : "",
           						displayName: userName ? userName: user.displayName,
           						isSave: true,
-          						position: pos
+          						position: pos,
+          						userPart: userPart,
+          						userRank: userRank
           					})
           				}
           			}
@@ -383,19 +397,47 @@
           				email: user.email,
           				profileImg: user.photoURL ? user.photoURL : "",
           				userName: user.displayName,
-          				position: user.position
+          				position: user.position,
+          				userPart: user.userPart,
+          				userRank: user.userRank
           			}).then(cbUserAfterSave.bind(this));
           		}
           	}
           	var cbUserAfterSave = function() {
           		if (user.position === "user") {
-          			this.saveUserAtIndexedDB(user, null, true, "user");
+          			this.saveUserAtIndexedDB(user, null, true, "user", user.userPart, user.userRank);
           		} else {
-          			this.saveUserAtIndexedDB(user, null, true, "admin");
+          			this.saveUserAtIndexedDB(user, null, true, "admin", user.userPart, user.userRank);
           		}
           	}
           	userRef.once("value")
           		.then(cbUserRefResult.bind(this));
+          }
+
+          /* 관리자인지 사용자인지 체크 */
+          FirebaseChat.prototype.checkAdminOrUser = function() {
+          	var userUid = this.auth.currentUser.uid;
+
+          	this.database.ref("Users").once("value", this.loadUserPos.bind(this));
+          }
+          /* checkAdminOrUser 이후 */
+          FirebaseChat.prototype.loadUserPos = function(snapshot) {
+      		var cbCheckUserPos = function(data) {
+      			var val = data.val();
+
+      			if (data.key === this.auth.currentUser.uid) {
+          			if (val.position === "admin") {
+	          			this.liEmailJoin.style.display = "block";
+			      		this.liPartChange.style.display = "block";
+			      		this.liDeleteUser.style.display = "block";
+	          		} else {
+	          			this.liEmailJoin.style.display = "none";
+		          		this.liPartChange.style.display = "none";
+		          		this.liDeleteUser.style.display = "none";
+	          		}
+          		}
+      		}
+          	snapshot.forEach(cbCheckUserPos.bind(this));
           }
 
           /* 온라인 여부 체크 */
@@ -441,7 +483,6 @@
           	this.userTemplate = document.getElementById("templateUserList").innerHTML;
           	var userRef = this.database.ref("Users");
           	userRef.off();
-          	userRef.orderByChild("userName").once("value", this.getUserList.bind(this));
           	var cbCompleteUserList = function() {
           		this.loadOnlineStatus();
           	}
@@ -778,6 +819,7 @@
           	if (confirm("로그아웃하시겠습니까?")) {
           		if (this.database) {
 					this.database.goOffline();
+					location.reload();
           		}
           		this.auth.signOut();
           	}
@@ -793,11 +835,12 @@
 
           /* 이메일 가입 양식 표시 */
           FirebaseChat.prototype.displayEmailJoin = function() {
+          	this.dvAuth.style.display = "block"
           	this.dvLogin.style.display = "none";
+          	this.dvAdminJoin.style.display = "none";
           	this.dvJoin.style.display = "block";
           }
 
-          var randomCode = "";
           /* 관리자 가입 양식 표시 */
           FirebaseChat.prototype.displayAdminEmailJoin = function() {
           	this.dvLogin.style.display = "none";
@@ -810,17 +853,25 @@
 			console.log(randomCode);
           }
 
-          /* 이메일 가입 */
+          /* 신규 입사자 가입 */
           FirebaseChat.prototype.createEmailUser = function() {
           	var userName = document.getElementById('joinUserName').value.trim(),
           		email = document.getElementById('joinUserEmail').value.trim(),
           		password = document.getElementById('joinPassword').value.trim(),
-          		rePassword = document.getElementById('joinRePassword').value.trim();
+          		rePassword = document.getElementById('joinRePassword').value.trim(),
+          		userPart = document.getElementById('joinUserPart').value.trim(),
+          		userRank = document.getElementById('joinUserRank').value.trim();
+
+          	var config = {apiKey: "AIzaSyDRQhlO8x4V50gaBGjYtnSgJ0fd1rZmlEs",
+			    authDomain: "b2b-chat-project.firebaseapp.com",
+			    databaseURL: "https://b2b-chat-project.firebaseio.com"};
+			var secondaryApp = firebase.initializeApp(config, "Secondary");
 
           	if (this.validateJoinForm(email, password, rePassword)) {
           		var cbCreateUserWithEmail = function(user) {
           			console.log("사용자 가입 성공: ", JSON.stringify(user));
-          			this.saveUserAtIndexedDB(user, userName, false, "user");
+          			alert("신규입사자 등록이 완료되었습니다.\n해당 계정으로 로그인하면 프로그램에 반영됩니다.");
+          			this.saveUserAtIndexedDB(user, userName, false, "user", userPart, userRank);
 
           			// 사용자 이름 파라미터 전달
           			user.updateProfile({
@@ -830,9 +881,20 @@
           			}).catch(function(error) {
           				console.log("사용자 이름 업데이트 실패: ", error);
           			});
+
+          			document.getElementById('joinUserName').value = null;
+          			document.getElementById('joinUserEmail').value = null;
+          			document.getElementById('joinPassword').value = null;
+          			document.getElementById('joinRePassword').value = null;
+          			document.getElementById('joinUserPart').value = null;
+          			document.getElementById('joinUserRank').value = null;
+
+          			location.reload();
+
+          			secondaryApp.auth().signOut();
           		}
           		var cbAfterPersistence = function() {
-          			return this.auth.createUserWithEmailAndPassword(email, password)
+          			return secondaryApp.auth().createUserWithEmailAndPassword(email, password)
           				.then(cbCreateUserWithEmail.bind(this))
           				.catch(function(error) {
           					console.error("이메일 가입 중 에러: ", error);
@@ -867,13 +929,15 @@
           		email = document.getElementById('joinAdminEmail').value.trim(),
           		password = document.getElementById('joinAdminPassword').value.trim(),
           		rePassword = document.getElementById('joinAdminRePassword').value.trim(),
-          		adminCode = document.getElementById('joinAdminCode').value.trim();
+          		adminCode = document.getElementById('joinAdminCode').value.trim(),
+          		adminPart = document.getElementById('joinAdminPart').value.trim(),
+          		adminRank = document.getElementById('joinAdminRank').value.trim();
 
           	if (this.validateJoinForm(email, password, rePassword) && this.validateAdminCode(adminCode)) {
           		randomCode = "";
           		var cbCreateAdminWithEmail = function(user) {
           			console.log("관리자 가입 성공: ", JSON.stringify(user));
-          			this.saveUserAtIndexedDB(user, userName, false, "admin");
+          			this.saveUserAtIndexedDB(user, userName, false, "admin", adminPart, adminRank);
 
           			// 사용자 이름 파라미터 전달
           			user.updateProfile({
